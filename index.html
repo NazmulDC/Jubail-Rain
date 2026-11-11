@@ -18,7 +18,7 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
-  body{font-family:"Noto Sans Bengali","Kalpurush","Siyam Rupali",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);line-height:1.6;min-height:100vh;
+  body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,system-ui,-apple-system,"Noto Sans Bengali","Nirmala UI","Kalpurush","Siyam Rupali",sans-serif;color:var(--ink);line-height:1.6;min-height:100vh;
        background:radial-gradient(1200px 700px at 15% -10%,var(--bg2),transparent 60%),linear-gradient(160deg,var(--bg1),var(--bg2));background-attachment:fixed}
   #rain{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.85}
   .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 14px}
@@ -515,7 +515,7 @@ function renderAll(){
   /* বাস্তব বৃষ্টির তীব্রতা অনুযায়ী অ্যানিমেশন ও শব্দ */
   const maxMm = Math.max(...DATA.map(d=>d.current.precipitation||0));
   const storm = DATA.some(d=>d.current.weather_code>=95);
-  setRainLevel(storm||maxMm>=2.5 ? 1 : maxMm>=1 ? .9 : maxMm>0 ? .7 : .45);
+  setRainLevel(storm||maxMm>=2.5 ? 1 : maxMm>=1 ? .9 : maxMm>0 ? .8 : .6);
 }
 
 let lastUpdate = null;
@@ -598,17 +598,17 @@ function setRainLevel(l){ RAIN_LEVEL = l; if(window.__rainSoundLevel) window.__r
   let W,H,drops=[],ripples=[];
   function size(){
     W=cv.width=innerWidth; H=cv.height=innerHeight;
-    drops=Array.from({length:MAX},()=>({x:Math.random()*(W+150),y:Math.random()*H,l:12+Math.random()*20,v:8+Math.random()*10,o:.18+Math.random()*.4}));
+    drops=Array.from({length:MAX},()=>({x:Math.random()*(W+150),y:Math.random()*H,l:12+Math.random()*20,v:8+Math.random()*10,o:.4+Math.random()*.45}));
   }
   size(); addEventListener("resize",size);
   function frame(){
     cx.clearRect(0,0,W,H);
     const dark = root.dataset.theme==="dark";
     const n = Math.floor(MAX*RAIN_LEVEL);
-    cx.lineWidth=1.2;
+    cx.lineWidth=1.7; cx.lineCap="round";
     for(let i=0;i<n;i++){
       const d=drops[i];
-      cx.strokeStyle = dark ? `rgba(175,220,255,${d.o})` : `rgba(20,100,190,${d.o})`;
+      cx.strokeStyle = dark ? `rgba(200,232,255,${d.o})` : `rgba(15,90,185,${d.o})`;
       cx.beginPath(); cx.moveTo(d.x,d.y); cx.lineTo(d.x-d.l*.2,d.y+d.l); cx.stroke();
       d.y+=d.v; d.x-=d.v*.2;
       if(d.y>H){
