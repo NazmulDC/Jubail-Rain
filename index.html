@@ -20,7 +20,7 @@
   html{scroll-behavior:smooth}
   body{font-family:"Noto Sans Bengali","Kalpurush","Siyam Rupali",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);line-height:1.6;min-height:100vh;
        background:radial-gradient(1200px 700px at 15% -10%,var(--bg2),transparent 60%),linear-gradient(160deg,var(--bg1),var(--bg2));background-attachment:fixed}
-  #rain{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5}
+  #rain{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.85}
   .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 14px}
 
   .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 0}
@@ -138,6 +138,8 @@
   <div class="top">
     <div class="brand"><div class="logo">🌧️</div><div data-i="brand"></div></div>
     <div class="tools">
+      <button class="btn" id="sound"></button>
+      <input type="range" id="vol" min="0" max="100" value="50" title="Volume" aria-label="Volume" style="width:90px;accent-color:var(--accent)">
       <button class="btn" id="lang">English</button>
       <button class="btn primary" id="refresh" data-i="refresh"></button>
       <button class="btn" id="theme" data-i="theme"></button>
@@ -185,7 +187,8 @@
 /* ====== সাইটের তালিকা / Site list — নাম ও কোঅর্ডিনেট এখানে বদলান ======
    lat/lon ঠিক না হলে Google Maps-এ সাইটে রাইট-ক্লিক করে কোঅর্ডিনেট কপি করে বসান। */
 const SITES = [
-  { bn: "রিয়াস NGL প্রজেক্ট, জুবাইল", en: "Riyas NGL Project, Jubail", lat: 26.793381, lon: 49.687365 }
+  { bn: "রিয়াস NGL প্রজেক্ট, জুবাইল", en: "Riyas NGL Project, Jubail", lat: 26.793381, lon: 49.687365 },
+  { bn: "জুবাইল শহর",                 en: "Jubail City",               lat: 27.0046,   lon: 49.6460 }
 ];
 /* ====== ============================================== ====== */
 
@@ -237,6 +240,7 @@ const TX = {
   dirs:["উত্তর","উত্তর-পূর্ব","পূর্ব","দক্ষিণ-পূর্ব","দক্ষিণ","দক্ষিণ-পশ্চিম","পশ্চিম","উত্তর-পশ্চিম"],
   days:["রবিবার","সোমবার","মঙ্গলবার","বুধবার","বৃহস্পতিবার","শুক্রবার","শনিবার"],
   months:["জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল","মে","জুন","জুলাই","আগস্ট","সেপ্টেম্বর","অক্টোবর","নভেম্বর","ডিসেম্বর"],
+  sndOff:"🔈 বৃষ্টির শব্দ", sndOn:"🔊 শব্দ চালু ✓",
   langBtn:"English"
  },
  en:{
@@ -274,6 +278,7 @@ const TX = {
   dirs:["N","NE","E","SE","S","SW","W","NW"],
   days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
   months:["January","February","March","April","May","June","July","August","September","October","November","December"],
+  sndOff:"🔈 Rain sound", sndOn:"🔊 Sound on ✓",
   langBtn:"বাংলা"
  }
 };
@@ -507,6 +512,10 @@ function renderAll(){
   document.getElementById("alerts").innerHTML = alertsHtml();
   document.getElementById("overview").innerHTML = overviewHtml();
   renderChips(); renderSites();
+  /* বাস্তব বৃষ্টির তীব্রতা অনুযায়ী অ্যানিমেশন ও শব্দ */
+  const maxMm = Math.max(...DATA.map(d=>d.current.precipitation||0));
+  const storm = DATA.some(d=>d.current.weather_code>=95);
+  setRainLevel(storm||maxMm>=2.5 ? 1 : maxMm>=1 ? .9 : maxMm>0 ? .7 : .45);
 }
 
 let lastUpdate = null;
@@ -523,6 +532,7 @@ function applyLang(){
   document.title = isBn() ? "জুবাইল বৃষ্টির পূর্বাভাস ও আবহাওয়া" : "Jubail Rain Forecast & Weather";
   document.querySelectorAll("[data-i]").forEach(el=>{ el.textContent = L[el.dataset.i]; });
   document.getElementById("lang").textContent = L.langBtn;
+  if(window.__updSnd) window.__updSnd();
   renderUpdated(); renderAll(); tick(true);
 }
 
@@ -579,21 +589,114 @@ document.getElementById("theme").onclick = ()=>{
 };
 
 /* ---------- Rain animation ---------- */
+let RAIN_LEVEL = 0.6;   // 0.45 = হালকা, 1 = প্রবল
+function setRainLevel(l){ RAIN_LEVEL = l; if(window.__rainSoundLevel) window.__rainSoundLevel(l); }
+
 (function(){
   const cv=document.getElementById("rain"), cx=cv.getContext("2d");
-  let W,H,drops=[];
-  function size(){ W=cv.width=innerWidth; H=cv.height=innerHeight;
-    drops=Array.from({length:Math.min(140,Math.floor(W/9))},()=>({x:Math.random()*W,y:Math.random()*H,l:8+Math.random()*14,v:4+Math.random()*6})); }
+  const MAX=360;
+  let W,H,drops=[],ripples=[];
+  function size(){
+    W=cv.width=innerWidth; H=cv.height=innerHeight;
+    drops=Array.from({length:MAX},()=>({x:Math.random()*(W+150),y:Math.random()*H,l:12+Math.random()*20,v:8+Math.random()*10,o:.18+Math.random()*.4}));
+  }
   size(); addEventListener("resize",size);
   function frame(){
     cx.clearRect(0,0,W,H);
-    cx.strokeStyle = root.dataset.theme==="dark" ? "rgba(150,200,255,.5)" : "rgba(20,100,190,.35)";
-    cx.lineWidth=1; cx.beginPath();
-    drops.forEach(d=>{ cx.moveTo(d.x,d.y); cx.lineTo(d.x-2,d.y+d.l); d.y+=d.v; d.x-=.6;
-      if(d.y>H){ d.y=-20; d.x=Math.random()*W+40; } });
-    cx.stroke(); requestAnimationFrame(frame);
+    const dark = root.dataset.theme==="dark";
+    const n = Math.floor(MAX*RAIN_LEVEL);
+    cx.lineWidth=1.2;
+    for(let i=0;i<n;i++){
+      const d=drops[i];
+      cx.strokeStyle = dark ? `rgba(175,220,255,${d.o})` : `rgba(20,100,190,${d.o})`;
+      cx.beginPath(); cx.moveTo(d.x,d.y); cx.lineTo(d.x-d.l*.2,d.y+d.l); cx.stroke();
+      d.y+=d.v; d.x-=d.v*.2;
+      if(d.y>H){
+        if(Math.random()<.3 && ripples.length<50) ripples.push({x:d.x,y:H-3-Math.random()*18,r:1,a:.5});
+        d.y=-20; d.x=Math.random()*(W+150);
+      }
+    }
+    ripples = ripples.filter(r=>r.a>0.03);
+    ripples.forEach(r=>{
+      cx.strokeStyle = dark ? `rgba(175,220,255,${r.a})` : `rgba(20,100,190,${r.a})`;
+      cx.beginPath(); cx.ellipse(r.x,r.y,r.r,r.r*.35,0,0,6.283); cx.stroke();
+      r.r+=.8; r.a-=.025;
+    });
+    requestAnimationFrame(frame);
   }
   frame();
+})();
+
+/* ---------- Rain sound (Web Audio, কোনো ফাইল লাগে না) ---------- */
+(function(){
+  let ac=null, master=null, playing=false, level=.6;
+  const btn=document.getElementById("sound"), vol=document.getElementById("vol");
+  const pref = () => { try{ return localStorage.getItem("snd"); }catch(e){ return null; } };
+  const setPref = v => { try{ localStorage.setItem("snd",v); }catch(e){} };
+  try{ const v=localStorage.getItem("vol"); if(v!==null) vol.value=v; }catch(e){}
+
+  function target(){ return (vol.value/100) * (0.35+0.65*level) * 0.55; }
+  function build(){
+    ac = new (window.AudioContext||window.webkitAudioContext)();
+    const len = ac.sampleRate*4;
+    function noise(brown){
+      const buf=ac.createBuffer(2,len,ac.sampleRate);
+      for(let c=0;c<2;c++){
+        const data=buf.getChannelData(c); let last=0;
+        for(let i=0;i<len;i++){
+          const w=Math.random()*2-1;
+          if(brown){ last=(last+0.02*w)/1.02; data[i]=last*3.5; } else data[i]=w;
+        }
+      }
+      const s=ac.createBufferSource(); s.buffer=buf; s.loop=true; return s;
+    }
+    master=ac.createGain(); master.gain.value=0; master.connect(ac.destination);
+    // বৃষ্টির ঝমঝম (সাদা আওয়াজ ছাঁকা)
+    const s1=noise(false), hp=ac.createBiquadFilter(), lp=ac.createBiquadFilter(), g1=ac.createGain();
+    hp.type="highpass"; hp.frequency.value=700; lp.type="lowpass"; lp.frequency.value=9000; g1.gain.value=.55;
+    s1.connect(hp); hp.connect(lp); lp.connect(g1); g1.connect(master);
+    // নিচু গুমগুম
+    const s2=noise(true), lp2=ac.createBiquadFilter(), g2=ac.createGain();
+    lp2.type="lowpass"; lp2.frequency.value=500; g2.gain.value=.7;
+    s2.connect(lp2); lp2.connect(g2); g2.connect(master);
+    s1.start(); s2.start();
+  }
+  function start(){
+    try{
+      if(!ac) build();
+      ac.resume();
+      master.gain.cancelScheduledValues(ac.currentTime);
+      master.gain.setTargetAtTime(target(), ac.currentTime, .4);
+      playing=true;
+    }catch(e){ playing=false; }
+    upd();
+  }
+  function stop(){
+    if(ac && master){ master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(0, ac.currentTime, .25); }
+    playing=false; upd();
+  }
+  function upd(){
+    const L = TX[LANG];
+    btn.textContent = playing ? L.sndOn : L.sndOff;
+    btn.classList.toggle("primary", playing);
+  }
+  btn.onclick = () => { if(playing){ setPref("off"); stop(); } else { setPref("on"); start(); } };
+  vol.addEventListener("input", () => {
+    try{ localStorage.setItem("vol", vol.value); }catch(e){}
+    if(playing && ac) master.gain.setTargetAtTime(target(), ac.currentTime, .1);
+  });
+  window.__rainSoundLevel = l => { level=l; if(playing && ac) master.gain.setTargetAtTime(target(), ac.currentTime, 1); };
+  window.__updSnd = upd;
+
+  // ব্রাউজার প্রথম ক্লিক/টাচের আগে শব্দ চালাতে দেয় না — তাই প্রথম ছোঁয়াতেই শুরু হবে (যদি আপনি বন্ধ না করে থাকেন)
+  function firstGesture(e){
+    if(e.target.closest && e.target.closest("#sound,#vol")) { cleanup(); return; }
+    cleanup();
+    if(pref()!=="off") start();
+  }
+  function cleanup(){ ["pointerdown","keydown","touchstart"].forEach(t=>removeEventListener(t,firstGesture,true)); }
+  ["pointerdown","keydown","touchstart"].forEach(t=>addEventListener(t,firstGesture,true));
+  upd();
 })();
 
 applyLang();
