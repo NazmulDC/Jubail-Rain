@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="bn" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jubail Rain Forecast | জুবাইল বৃষ্টির পূর্বাভাস</title>
+<meta name="author" content="Nazmul Haque">
+<style>
+  :root{
+    --bg1:#06142b; --bg2:#0b2a5a; --glass:rgba(255,255,255,.07); --glass2:rgba(255,255,255,.11);
+    --ink:#eaf2ff; --muted:#9db4d6; --line:rgba(255,255,255,.12);
+    --accent:#4cc3ff; --accent2:#7b8cff; --warn:#ff8a3d; --ok:#3ddc97; --mid:#ffd166; --shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  [data-theme="light"]{
+    --bg1:#e9f2ff; --bg2:#cfe3fb; --glass:rgba(255,255,255,.75); --glass2:rgba(255,255,255,.95);
+    --ink:#0f2742; --muted:#55708f; --line:rgba(15,39,66,.12);
+    --accent:#1479d4; --accent2:#4c5fe0; --shadow:0 10px 30px rgba(20,60,110,.15);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:"Noto Sans Bengali","Kalpurush","Siyam Rupali",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);line-height:1.6;min-height:100vh;
+       background:radial-gradient(1200px 700px at 15% -10%,var(--bg2),transparent 60%),linear-gradient(160deg,var(--bg1),var(--bg2));background-attachment:fixed}
+  #rain{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5}
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 14px}
+
+  .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 0}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .brand .logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:1.4rem;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:var(--shadow)}
+  .tools{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{font-family:inherit;color:var(--ink);background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+       border-radius:12px;padding:8px 14px;font-size:.9rem;cursor:pointer;transition:.2s}
+  .btn:hover{background:var(--glass2);transform:translateY(-1px)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:0}
+
+  .hero{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:var(--shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+        display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:center}
+  .hero h1{font-size:1.9rem;line-height:1.3;background:linear-gradient(90deg,var(--ink),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:var(--muted);margin-top:6px}
+  .clock{text-align:right}
+  .clock .t{font-size:2.3rem;font-weight:700}
+  .clock .d{color:var(--muted)}
+  .refresh-box{margin-top:10px}
+  .progress{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:6px}
+  .progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 1s linear}
+  .small{font-size:.82rem;color:var(--muted)}
+
+  #alerts{display:grid;gap:10px;margin:16px 0}
+  .alert{border-radius:14px;padding:12px 16px;font-weight:600;border:1px solid var(--line);backdrop-filter:blur(10px)}
+  .alert.warn{background:rgba(255,138,61,.16);border-color:rgba(255,138,61,.5);color:#ffb27d}
+  .alert.info{background:rgba(76,195,255,.15);border-color:rgba(76,195,255,.5);color:#8bdcff}
+  .alert.ok{background:rgba(61,220,151,.14);border-color:rgba(61,220,151,.45);color:#7df0bb}
+  [data-theme="light"] .alert.warn{color:#a8400a}
+  [data-theme="light"] .alert.info{color:#0c5a99}
+  [data-theme="light"] .alert.ok{color:#14653d}
+
+  .sec-title{font-size:1.1rem;margin:22px 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+  .ov{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:16px;cursor:pointer;transition:.2s;box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .ov:hover{transform:translateY(-3px);background:var(--glass2)}
+  .ov h3{font-size:1rem;display:flex;justify-content:space-between;gap:6px}
+  .ov .big{font-size:2rem;font-weight:700;margin:4px 0}
+  .ov .row{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;color:var(--muted)}
+  .nextrain{margin-top:10px;padding:9px 11px;border-radius:12px;font-size:.86rem;font-weight:600;background:rgba(76,195,255,.14);border:1px solid rgba(76,195,255,.4)}
+  .nextrain.now{background:rgba(255,138,61,.16);border-color:rgba(255,138,61,.5)}
+  .nextrain.none{background:rgba(61,220,151,.12);border-color:rgba(61,220,151,.4)}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}
+  .chip{font-family:inherit;color:var(--ink);background:var(--glass);border:1px solid var(--line);border-radius:30px;padding:7px 16px;cursor:pointer;font-size:.9rem;transition:.2s}
+  .chip.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent}
+
+  .card{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);scroll-margin-top:12px}
+  .card h2{font-size:1.3rem;display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .card h2 small{font-size:.8rem;color:var(--muted);font-weight:400}
+  .now{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:14px 0}
+  .now .ico{font-size:3.4rem;filter:drop-shadow(0 6px 14px rgba(0,0,0,.3))}
+  .now .temp{font-size:2.8rem;font-weight:700;line-height:1}
+  .now .cond{color:var(--muted)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .stat{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:11px;text-align:center}
+  .stat b{display:block;font-size:1.15rem}
+  .stat span{font-size:.78rem;color:var(--muted)}
+  h4{font-size:1rem;margin:18px 0 8px;color:var(--accent)}
+
+  /* Rain timeline */
+  .rt-head{padding:12px 14px;border-radius:14px;font-weight:700;margin:16px 0 10px;background:rgba(76,195,255,.14);border:1px solid rgba(76,195,255,.4)}
+  .rt-head.now{background:rgba(255,138,61,.16);border-color:rgba(255,138,61,.5)}
+  .rt-head.none{background:rgba(61,220,151,.12);border-color:rgba(61,220,151,.4)}
+  .rt-list{display:grid;gap:10px}
+  .rt{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+  .rt .ic{font-size:1.8rem}
+  .rt .when{font-weight:700}
+  .rt .meta{font-size:.82rem;color:var(--muted)}
+  .rt .right{text-align:right;font-size:.85rem}
+  .rt.active{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn) inset}
+
+  .hours{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}
+  .hours::-webkit-scrollbar{height:6px}.hours::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+  .hr{flex:0 0 58px;text-align:center;font-size:.74rem}
+  .hr .col{height:86px;display:flex;align-items:flex-end;justify-content:center;background:var(--glass);border-radius:10px;margin:4px 0}
+  .hr .fill{width:68%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--accent),var(--accent2));min-height:2px}
+  .hr .fill.hi{background:linear-gradient(180deg,#ffb36b,var(--warn))}
+  .hr .p{font-weight:700}
+  .hr .mm{color:var(--muted);min-height:1.2em}
+  .hr .dy{color:var(--accent);font-weight:700;min-height:1.2em}
+
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th,td{padding:9px 6px;text-align:center;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:.8rem}
+  td:first-child,th:first-child{text-align:left}
+  .tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.8rem;font-weight:700;color:#06142b}
+  .low{background:var(--ok)}.mid{background:var(--mid)}.high{background:var(--warn)}
+
+  .err{background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.5);padding:14px;border-radius:14px}
+  .loading{text-align:center;color:var(--muted);padding:40px}
+
+  .credit{margin:30px 0 14px;border-radius:22px;padding:22px;text-align:center;background:linear-gradient(135deg,rgba(76,195,255,.18),rgba(123,140,255,.2));border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .credit .by{color:var(--muted);font-size:.85rem;letter-spacing:.08em}
+  .credit .name{font-size:1.6rem;font-weight:700;margin:4px 0;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .credit .role{font-weight:600}
+  .credit .co{color:var(--muted)}
+  footer{text-align:center;padding:0 0 30px}
+
+  @media(max-width:760px){
+    .hero{grid-template-columns:1fr}.clock{text-align:left}.hero h1{font-size:1.5rem}
+    .rt{grid-template-columns:auto 1fr}.rt .right{grid-column:1 / -1;text-align:left}
+  }
+  @media print{
+    #rain,.tools,.chips,.refresh-box{display:none!important}
+    body{background:#fff;color:#000}.card,.ov,.hero,.credit,.stat,.rt{box-shadow:none;background:#fff;color:#000;border-color:#ccc}
+  }
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><div class="logo">🌧️</div><div data-i="brand"></div></div>
+    <div class="tools">
+      <button class="btn" id="lang">English</button>
+      <button class="btn primary" id="refresh" data-i="refresh"></button>
+      <button class="btn" id="theme" data-i="theme"></button>
+      <button class="btn" id="print" data-i="print"></button>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div>
+      <h1 data-i="h1"></h1>
+      <p data-i="sub"></p>
+      <div class="refresh-box">
+        <div class="small" id="updated"></div>
+        <div class="progress"><i id="bar"></i></div>
+        <div class="small" id="countdown" style="margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="clock">
+      <div class="t" id="clock">--:--:--</div>
+      <div class="d" id="date"></div>
+      <div class="small" data-i="tz"></div>
+    </div>
+  </section>
+
+  <div id="alerts"></div>
+
+  <div class="sec-title"><span data-i="ovTitle"></span> <span class="small" data-i="ovHint"></span></div>
+  <div class="overview" id="overview"></div>
+
+  <div class="sec-title" data-i="siteSel"></div>
+  <div class="chips" id="chips"></div>
+
+  <div id="sites"><div class="loading" data-i="loading"></div></div>
+
+  <div class="credit">
+    <div class="by">MADE BY</div>
+    <div class="name">Nazmul Haque</div>
+    <div class="role">Document Controller</div>
+    <div class="co">Sinopec Engineering Group</div>
+  </div>
+  <footer class="small"><span data-i="foot1"></span><br><span data-i="foot2"></span></footer>
+</div>
+
+<script>
+/* ====== সাইটের তালিকা / Site list — নাম ও কোঅর্ডিনেট এখানে বদলান ======
+   lat/lon ঠিক না হলে Google Maps-এ সাইটে রাইট-ক্লিক করে কোঅর্ডিনেট কপি করে বসান। */
+const SITES = [
+  { bn: "জুবাইল শহর",       en: "Jubail City",              lat: 27.0046, lon: 49.6460 },
+  { bn: "জুবাইল শিল্পনগরী", en: "Jubail Industrial City",   lat: 27.0830, lon: 49.5500 },
+  { bn: "রাস আল-খাইর",      en: "Ras Al-Khair",             lat: 27.4797, lon: 49.1944 }
+];
+/* ====== ============================================== ====== */
+
+const REFRESH_SEC = 10 * 60;      // ১০ মিনিট / 10 minutes
+const RAIN_MM = 0.1, RAIN_PROB = 60;  // বৃষ্টির ঘণ্টা ধরার সীমা
+
+/* ---------- Language ---------- */
+let LANG = "bn";
+try{ const s = localStorage.getItem("lang"); if(s==="en"||s==="bn") LANG=s; }catch(e){}
+const isBn = () => LANG==="bn";
+const BND = "০১২৩৪৫৬৭৮৯";
+const nf = v => isBn() ? String(v).replace(/\d/g, d => BND[d]) : String(v);
+const num = (v,d=0) => nf(Number(v).toFixed(d));
+const pad = n => String(n).padStart(2,"0");
+
+const TX = {
+ bn:{
+  brand:"জুবাইল বৃষ্টি ও আবহাওয়া কেন্দ্র", refresh:"🔄 এখনই রিফ্রেশ", theme:"🌓 থিম", print:"🖨️ প্রিন্ট",
+  h1:"জুবাইল বৃষ্টির পূর্বাভাস ও আবহাওয়া",
+  sub:"কখন বৃষ্টি শুরু হবে, কখন থামবে, কত মিমি হবে — সাইটভিত্তিক ঘণ্টাভিত্তিক পূর্বাভাস এক পাতায়।",
+  tz:"সৌদি আরব সময় (UTC+৩)", ovTitle:"📊 সব সাইটের সারসংক্ষেপ", ovHint:"(কার্ডে ক্লিক করলে বিস্তারিত দেখাবে)",
+  siteSel:"📍 সাইট নির্বাচন", all:"সব সাইট", loading:"আবহাওয়ার তথ্য আনা হচ্ছে…",
+  foot1:"তথ্যসূত্র: Open-Meteo আবহাওয়া মডেল · প্রতি ১০ মিনিট পর পর নিজে নিজে হালনাগাদ হয়।",
+  foot2:"এটি পূর্বাভাস মাত্র; জরুরি কাজের আগে সাইটের অফিসিয়াল সেফটি নির্দেশনা অনুসরণ করুন।",
+  updated:"সর্বশেষ হালনাগাদ: ", loadingShort:"তথ্য লোড হচ্ছে…",
+  next:"পরবর্তী স্বয়ংক্রিয় রিফ্রেশ: ", minLater:" মিনিট পর",
+  err:"তথ্য আনা যায়নি। ইন্টারনেট সংযোগ দেখে \"এখনই রিফ্রেশ\" চাপুন।",
+  temp:"°সে", feels:"অনুভূত", kmh:"কিমি/ঘ", mm:"মিমি", north:"°উ", east:"°পূ",
+  maxChance:"২৪ ঘণ্টায় বৃষ্টির সর্বোচ্চ সম্ভাবনা", mm24:"২৪ ঘণ্টায় সম্ভাব্য বৃষ্টি", nowRain:"এখন বৃষ্টি",
+  hum:"আর্দ্রতা", wind:"বাতাস", from:"থেকে", gust:"দমকা হাওয়া", cloud:"মেঘের আচ্ছাদন", press:"বায়ুচাপ",
+  uv:"আজকের সর্বোচ্চ UV", sunrise:"সূর্যোদয়", sunset:"সূর্যাস্ত",
+  rainTimeTitle:"🕒 বৃষ্টির সময়সূচি — কখন শুরু, কখন শেষ (আগামী ৭ দিন)",
+  hourlyTitle:"⏱️ আগামী ৪৮ ঘণ্টা — ঘণ্টাভিত্তিক বৃষ্টির সম্ভাবনা",
+  weekTitle:"📅 ৭ দিনের পূর্বাভাস",
+  thDay:"দিন", thWx:"আবহাওয়া", thChance:"বৃষ্টির সম্ভাবনা", thAmt:"বৃষ্টির পরিমাণ", thTemp:"সর্বোচ্চ/সর্বনিম্ন", thWind:"সর্বোচ্চ বাতাস", thSun:"সূর্যোদয়/অস্ত",
+  today:"আজ", tomorrow:"আগামীকাল",
+  hi:"বেশি", md:"মাঝারি", lo:"কম",
+  inten:["হালকা","মাঝারি","ভারী","প্রবল"],
+  peak:"সর্বোচ্চ সম্ভাবনা", total:"মোট", duration:h=>`${nf(h)} ঘণ্টা স্থায়ী`, for:"সর্বোচ্চ",
+  nowRainHead:(end)=>`🌧️ এখন বৃষ্টি চলছে — আনুমানিক থামবে: ${end}`,
+  nextHead:(when,hrs)=>`🌧️ পরের বৃষ্টি: ${when} (${hrs===0?"এখনই":nf(hrs)+" ঘণ্টা পর"})`,
+  noneHead:"✅ আগামী ৭ দিনে উল্লেখযোগ্য বৃষ্টির সম্ভাবনা নেই",
+  noneList:"এই সময়ে কোনো বৃষ্টির সময় পাওয়া যায়নি — আকাশ মোটামুটি শুকনো থাকবে।",
+  nrNow:e=>`🌧️ এখন বৃষ্টি — থামবে ~${e}`, nrNext:(w,h)=>`⏰ পরের বৃষ্টি: ${w} (${h===0?"এখনই":nf(h)+" ঘণ্টা পর"})`, nrNone:"✅ ৭ দিনে বৃষ্টি নেই",
+  alertRain:(s,p,t)=>`⚠️ ${s}: আগামী ২৪ ঘণ্টায় বৃষ্টির সম্ভাবনা ${nf(p)}% (সবচেয়ে বেশি ${t}-এর দিকে)। বাইরের কাজ ও মালামাল/ডকুমেন্ট ঢেকে রাখার ব্যবস্থা নিন।`,
+  alertSoon:(s,w,h)=>`⏰ ${s}: প্রায় ${h===0?"এখনই":nf(h)+" ঘণ্টার মধ্যে"} বৃষ্টি শুরু হতে পারে (${w})।`,
+  alertGust:(s,g)=>`💨 ${s}: এখন দমকা হাওয়া ${num(g)} কিমি/ঘ — উঁচুতে কাজে সতর্ক থাকুন।`,
+  alertOk:"✅ সব সাইটে আগামী ২৪ ঘণ্টায় বড় ধরনের বৃষ্টির সম্ভাবনা দেখা যাচ্ছে না।",
+  dirs:["উত্তর","উত্তর-পূর্ব","পূর্ব","দক্ষিণ-পূর্ব","দক্ষিণ","দক্ষিণ-পশ্চিম","পশ্চিম","উত্তর-পশ্চিম"],
+  days:["রবিবার","সোমবার","মঙ্গলবার","বুধবার","বৃহস্পতিবার","শুক্রবার","শনিবার"],
+  months:["জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল","মে","জুন","জুলাই","আগস্ট","সেপ্টেম্বর","অক্টোবর","নভেম্বর","ডিসেম্বর"],
+  langBtn:"English"
+ },
+ en:{
+  brand:"Jubail Rain & Weather Center", refresh:"🔄 Refresh now", theme:"🌓 Theme", print:"🖨️ Print",
+  h1:"Jubail Rain Forecast & Weather",
+  sub:"When the rain starts, when it stops and how much will fall — site-wise hourly forecast on one page.",
+  tz:"Saudi Arabia time (UTC+3)", ovTitle:"📊 All sites overview", ovHint:"(click a card for details)",
+  siteSel:"📍 Select site", all:"All sites", loading:"Fetching weather data…",
+  foot1:"Source: Open-Meteo weather models · Auto-updates every 10 minutes.",
+  foot2:"This is a forecast only; follow the site's official safety instructions before critical work.",
+  updated:"Last updated: ", loadingShort:"Loading data…",
+  next:"Next auto-refresh in ", minLater:" min",
+  err:"Could not fetch data. Check your internet and press \"Refresh now\".",
+  temp:"°C", feels:"Feels like", kmh:"km/h", mm:"mm", north:"°N", east:"°E",
+  maxChance:"Max rain chance (24 h)", mm24:"Expected rain (24 h)", nowRain:"Rain now",
+  hum:"Humidity", wind:"Wind", from:"from", gust:"Wind gusts", cloud:"Cloud cover", press:"Pressure",
+  uv:"Today's max UV", sunrise:"Sunrise", sunset:"Sunset",
+  rainTimeTitle:"🕒 Rain timetable — start & end times (next 7 days)",
+  hourlyTitle:"⏱️ Next 48 hours — hourly rain chance",
+  weekTitle:"📅 7-day forecast",
+  thDay:"Day", thWx:"Weather", thChance:"Rain chance", thAmt:"Rain amount", thTemp:"High / Low", thWind:"Max wind", thSun:"Sunrise/Sunset",
+  today:"Today", tomorrow:"Tomorrow",
+  hi:"High", md:"Medium", lo:"Low",
+  inten:["Light","Moderate","Heavy","Very heavy"],
+  peak:"Peak chance", total:"Total", duration:h=>`lasts ~${h} h`, for:"Max",
+  nowRainHead:(end)=>`🌧️ Raining now — expected to stop around ${end}`,
+  nextHead:(when,hrs)=>`🌧️ Next rain: ${when} (${hrs===0?"right now":"in "+hrs+" h"})`,
+  noneHead:"✅ No significant rain expected in the next 7 days",
+  noneList:"No rain periods found — skies should stay mostly dry.",
+  nrNow:e=>`🌧️ Raining now — stops ~${e}`, nrNext:(w,h)=>`⏰ Next rain: ${w} (${h===0?"now":"in "+h+" h"})`, nrNone:"✅ No rain in 7 days",
+  alertRain:(s,p,t)=>`⚠️ ${s}: ${p}% chance of rain in the next 24 hours (highest around ${t}). Cover outdoor work, materials and documents.`,
+  alertSoon:(s,w,h)=>`⏰ ${s}: rain may start ${h===0?"right now":"within about "+h+" h"} (${w}).`,
+  alertGust:(s,g)=>`💨 ${s}: wind gusts at ${num(g)} km/h — take care when working at height.`,
+  alertOk:"✅ No major rain expected at any site in the next 24 hours.",
+  dirs:["N","NE","E","SE","S","SW","W","NW"],
+  days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+  months:["January","February","March","April","May","June","July","August","September","October","November","December"],
+  langBtn:"বাংলা"
+ }
+};
+const T = () => TX[LANG];
+
+const WMO = {
+  0:["☀️","পরিষ্কার আকাশ","Clear sky"],1:["🌤️","প্রায় পরিষ্কার","Mostly clear"],2:["⛅","আংশিক মেঘলা","Partly cloudy"],3:["☁️","মেঘাচ্ছন্ন","Overcast"],
+  45:["🌫️","কুয়াশা","Fog"],48:["🌫️","জমাট কুয়াশা","Rime fog"],
+  51:["🌦️","হালকা গুঁড়িগুঁড়ি বৃষ্টি","Light drizzle"],53:["🌦️","গুঁড়িগুঁড়ি বৃষ্টি","Drizzle"],55:["🌧️","ঘন গুঁড়িগুঁড়ি বৃষ্টি","Dense drizzle"],
+  56:["🌧️","ঠান্ডা গুঁড়িগুঁড়ি বৃষ্টি","Freezing drizzle"],57:["🌧️","ঠান্ডা ঘন গুঁড়িগুঁড়ি বৃষ্টি","Heavy freezing drizzle"],
+  61:["🌦️","হালকা বৃষ্টি","Light rain"],63:["🌧️","মাঝারি বৃষ্টি","Moderate rain"],65:["🌧️","ভারী বৃষ্টি","Heavy rain"],
+  66:["🌧️","হিমশীতল হালকা বৃষ্টি","Light freezing rain"],67:["🌧️","হিমশীতল ভারী বৃষ্টি","Heavy freezing rain"],
+  71:["🌨️","হালকা তুষারপাত","Light snow"],73:["🌨️","তুষারপাত","Snow"],75:["❄️","ভারী তুষারপাত","Heavy snow"],77:["🌨️","তুষারকণা","Snow grains"],
+  80:["🌦️","হালকা বৃষ্টির ঝাপটা","Light showers"],81:["🌧️","মাঝারি বৃষ্টির ঝাপটা","Moderate showers"],82:["⛈️","প্রবল বৃষ্টির ঝাপটা","Violent showers"],
+  85:["🌨️","হালকা তুষার ঝাপটা","Light snow showers"],86:["🌨️","ভারী তুষার ঝাপটা","Heavy snow showers"],
+  95:["⛈️","বজ্রসহ বৃষ্টি","Thunderstorm"],96:["⛈️","বজ্রসহ শিলাবৃষ্টি","Thunderstorm with hail"],99:["⛈️","প্রবল বজ্রসহ শিলাবৃষ্টি","Severe thunderstorm with hail"]
+};
+const wmo = c => { const w = WMO[c] || ["🌡️","অজানা","Unknown"]; return [w[0], isBn()?w[1]:w[2]]; };
+
+const siteName = s => isBn() ? s.bn : s.en;
+const windDir = deg => T().dirs[Math.round(deg/45)%8];
+const chance = p => p>=60 ? ["high",T().hi] : p>=30 ? ["mid",T().md] : ["low",T().lo];
+
+/* ---------- Time helpers (API times are local Saudi strings) ---------- */
+function hourOnly(h){
+  const h12 = h%12===0 ? 12 : h%12;
+  if(isBn()) return nf(h12) + (h===0?" রাত":h<12?" সকাল":h<17?" দুপুর":h<20?" সন্ধ্যা":" রাত");
+  return h12 + (h>=12?" PM":" AM");
+}
+const hourLabel = iso => hourOnly(Number(iso.slice(11,13)));
+function timeShort(iso){ return nf(iso.slice(11,16)); }
+function dayName(ds){
+  const d0 = DATA[0] && DATA[0].daily.time;
+  if(d0){ if(ds===d0[0]) return T().today; if(ds===d0[1]) return T().tomorrow; }
+  return T().days[new Date(ds+"T12:00:00").getDay()];
+}
+function dateShort(ds){ const d=new Date(ds+"T12:00:00"); return nf(d.getDate())+" "+T().months[d.getMonth()]; }
+function addHour(iso){ // returns {ds,h} for iso + 1 hour
+  const d = new Date(iso); d.setHours(d.getHours()+1);
+  return { ds: d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()), h: d.getHours() };
+}
+const fmtT = (ds,h) => dayName(ds)+", "+hourOnly(h);
+
+/* ---------- Data ---------- */
+let DATA = [], ACTIVE = "all";
+
+function buildUrl(){
+  const p = new URLSearchParams({
+    latitude: SITES.map(s=>s.lat).join(","),
+    longitude: SITES.map(s=>s.lon).join(","),
+    current: "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover,surface_pressure",
+    hourly: "precipitation_probability,precipitation",
+    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset,uv_index_max",
+    timezone: "Asia/Riyadh",
+    forecast_days: "7",
+    wind_speed_unit: "kmh"
+  });
+  return "https://api.open-meteo.com/v1/forecast?" + p;
+}
+
+function nowIndex(d){
+  const i = d.hourly.time.findIndex(t => t >= d.current.time.slice(0,13)+":00");
+  return Math.max(0,i);
+}
+function nextHours(d,n){
+  const h=d.hourly, s=nowIndex(d), arr=[];
+  for(let i=s;i<s+n && i<h.time.length;i++)
+    arr.push({t:h.time[i], p:h.precipitation_probability[i]||0, mm:h.precipitation[i]||0});
+  return arr;
+}
+
+/* Rain windows: merge consecutive "rain hours" (allow 1-hour gap) */
+function rainWindows(d){
+  const hrs = nextHours(d, 168);
+  const isRain = x => x.mm>=RAIN_MM || x.p>=RAIN_PROB;
+  const wins=[]; let cur=null, gap=0;
+  hrs.forEach((x,idx)=>{
+    if(isRain(x)){
+      if(!cur){ cur={start:x.t, last:x.t, peak:x.p, mm:x.mm, maxMm:x.mm, hours:1, startIdx:idx}; }
+      else { cur.last=x.t; cur.peak=Math.max(cur.peak,x.p); cur.mm+=x.mm; cur.maxMm=Math.max(cur.maxMm,x.mm); cur.hours=idx-cur.startIdx+1; }
+      gap=0;
+    } else if(cur){
+      gap++;
+      if(gap>1){ wins.push(cur); cur=null; gap=0; }
+    }
+  });
+  if(cur) wins.push(cur);
+  const curIso = d.current.time;
+  return wins.map(w=>{
+    const e = addHour(w.last);
+    const level = w.maxMm>=7.6?3 : w.maxMm>=2.5?2 : w.maxMm>=0.5?1 : 0;
+    const hrsUntil = Math.max(0, Math.round((new Date(w.start)-new Date(curIso.slice(0,13)+":00"))/36e5));
+    return { ...w, endDs:e.ds, endH:e.h, level, hrsUntil, startDs:w.start.slice(0,10), startH:Number(w.start.slice(11,13)),
+             active: new Date(w.start) <= new Date(curIso) && new Date(curIso) < new Date(e.ds+"T"+pad(e.h)+":00") };
+  });
+}
+const winText = w => `${fmtT(w.startDs,w.startH)} – ${w.startDs===w.endDs ? hourOnly(w.endH) : fmtT(w.endDs,w.endH)}`;
+const levelIcon = l => ["🌦️","🌧️","🌧️","⛈️"][l];
+
+function rainSummary(d){
+  const wins = rainWindows(d);
+  const act = wins.find(w=>w.active);
+  if(act) return {type:"now", w:act, wins};
+  const up = wins.find(w=>w.hrsUntil>=0 && !w.active);
+  if(up) return {type:"next", w:up, wins};
+  return {type:"none", wins};
+}
+const endText = w => w.startDs===w.endDs ? hourOnly(w.endH) : fmtT(w.endDs,w.endH);
+
+/* ---------- Render ---------- */
+function overviewHtml(){
+  return DATA.map((d,i)=>{
+    const [ico,cond]=wmo(d.current.weather_code), L=T();
+    const hrs=nextHours(d,24), maxP=Math.max(...hrs.map(x=>x.p)), mm=hrs.reduce((a,x)=>a+x.mm,0);
+    const [cls,lbl]=chance(maxP), rs=rainSummary(d);
+    const nr = rs.type==="now" ? `<div class="nextrain now">${L.nrNow(endText(rs.w))}</div>`
+             : rs.type==="next"? `<div class="nextrain">${L.nrNext(winText(rs.w), rs.w.hrsUntil)}</div>`
+             : `<div class="nextrain none">${L.nrNone}</div>`;
+    return `<div class="ov" data-go="${i}">
+      <h3><span>📍 ${siteName(SITES[i])}</span><span>${ico}</span></h3>
+      <div class="big">${num(d.current.temperature_2m,1)}${L.temp}</div>
+      <div class="small">${cond}</div>
+      ${nr}
+      <div class="row" style="margin-top:8px"><span>${L.maxChance}</span><span class="tag ${cls}">${nf(maxP)}% · ${lbl}</span></div>
+      <div class="row"><span>${L.mm24}</span><b>${num(mm,1)} ${L.mm}</b></div>
+      <div class="row"><span>${L.wind}</span><b>${num(d.current.wind_speed_10m)} ${L.kmh}</b></div>
+    </div>`;
+  }).join("");
+}
+
+function rainTimelineHtml(d){
+  const L=T(), rs=rainSummary(d);
+  let head;
+  if(rs.type==="now") head=`<div class="rt-head now">${L.nowRainHead(endText(rs.w))}</div>`;
+  else if(rs.type==="next") head=`<div class="rt-head">${L.nextHead(winText(rs.w), rs.w.hrsUntil)}</div>`;
+  else head=`<div class="rt-head none">${L.noneHead}</div>`;
+  if(!rs.wins.length) return head + `<div class="small">${L.noneList}</div>`;
+  const list = rs.wins.map(w=>`
+    <div class="rt ${w.active?"active":""}">
+      <div class="ic">${levelIcon(w.level)}</div>
+      <div><div class="when">${winText(w)}</div>
+        <div class="meta">${L.duration(w.hours)} · ${L.inten[w.level]}</div></div>
+      <div class="right"><div>${L.peak}: <b>${nf(w.peak)}%</b></div>
+        <div>${L.total}: <b>${num(w.mm,1)} ${L.mm}</b></div></div>
+    </div>`).join("");
+  return head + `<div class="rt-list">${list}</div>`;
+}
+
+function siteCard(i){
+  const L=T(), site=SITES[i], d=DATA[i], cur=d.current, dl=d.daily;
+  const [ico,cond]=wmo(cur.weather_code);
+  const h24=nextHours(d,24), maxP=Math.max(...h24.map(x=>x.p)), mm=h24.reduce((a,x)=>a+x.mm,0);
+  const h48=nextHours(d,48);
+  const hoursHtml=h48.map((x,k)=>{
+    const midnight = x.t.slice(11,13)==="00" || k===0;
+    return `<div class="hr"><div class="dy">${midnight?dayName(x.t.slice(0,10)):""}</div><div class="p">${nf(x.p)}%</div>
+      <div class="col"><div class="fill ${x.p>=60?"hi":""}" style="height:${Math.max(x.p,2)}%"></div></div>
+      <div>${hourLabel(x.t)}</div><div class="mm">${x.mm>0?num(x.mm,1)+" "+L.mm:""}</div></div>`;}).join("");
+  const rows=dl.time.map((t,k)=>{
+    const [dico,dcond]=wmo(dl.weather_code[k]), pp=dl.precipitation_probability_max[k]??0, [cls,lbl]=chance(pp);
+    return `<tr>
+      <td><b>${dayName(t)}</b><br><span class="small">${dateShort(t)}</span></td>
+      <td>${dico} ${dcond}</td>
+      <td><span class="tag ${cls}">${nf(pp)}% · ${lbl}</span></td>
+      <td>${num(dl.precipitation_sum[k],1)} ${L.mm}</td>
+      <td>${num(dl.temperature_2m_max[k])}° / ${num(dl.temperature_2m_min[k])}°</td>
+      <td>${num(dl.wind_speed_10m_max[k])} ${L.kmh}</td>
+      <td>${timeShort(dl.sunrise[k])} / ${timeShort(dl.sunset[k])}</td></tr>`;}).join("");
+  return `
+  <section class="card" id="site-${i}">
+    <h2>📍 ${siteName(site)} <small>${num(site.lat,3)}${L.north}, ${num(site.lon,3)}${L.east}</small></h2>
+    <div class="now">
+      <div class="ico">${ico}</div>
+      <div><div class="temp">${num(cur.temperature_2m,1)}${L.temp}</div><div class="cond">${cond} · ${L.feels} ${num(cur.apparent_temperature)}${L.temp}</div></div>
+    </div>
+    <h4>${L.rainTimeTitle}</h4>
+    ${rainTimelineHtml(d)}
+    <h4>📋</h4>
+    <div class="stats">
+      <div class="stat"><b>${nf(maxP)}%</b><span>${L.maxChance}</span></div>
+      <div class="stat"><b>${num(mm,1)} ${L.mm}</b><span>${L.mm24}</span></div>
+      <div class="stat"><b>${num(cur.precipitation,1)} ${L.mm}</b><span>${L.nowRain}</span></div>
+      <div class="stat"><b>${nf(cur.relative_humidity_2m)}%</b><span>${L.hum}</span></div>
+      <div class="stat"><b>${num(cur.wind_speed_10m)} ${L.kmh}</b><span>${L.wind} (${windDir(cur.wind_direction_10m)} ${L.from})</span></div>
+      <div class="stat"><b>${num(cur.wind_gusts_10m)} ${L.kmh}</b><span>${L.gust}</span></div>
+      <div class="stat"><b>${nf(cur.cloud_cover)}%</b><span>${L.cloud}</span></div>
+      <div class="stat"><b>${num(cur.surface_pressure)} hPa</b><span>${L.press}</span></div>
+      <div class="stat"><b>${num(dl.uv_index_max[0],1)}</b><span>${L.uv}</span></div>
+      <div class="stat"><b>🌅 ${timeShort(dl.sunrise[0])}</b><span>${L.sunrise}</span></div>
+      <div class="stat"><b>🌇 ${timeShort(dl.sunset[0])}</b><span>${L.sunset}</span></div>
+    </div>
+    <h4>${L.hourlyTitle}</h4>
+    <div class="hours">${hoursHtml}</div>
+    <h4>${L.weekTitle}</h4>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>${L.thDay}</th><th>${L.thWx}</th><th>${L.thChance}</th><th>${L.thAmt}</th><th>${L.thTemp}</th><th>${L.thWind}</th><th>${L.thSun}</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+  </section>`;
+}
+
+function alertsHtml(){
+  const L=T(), out=[];
+  DATA.forEach((d,i)=>{
+    const s=siteName(SITES[i]);
+    let best={p:0,t:null};
+    nextHours(d,24).forEach(x=>{ if(x.p>best.p) best=x; });
+    if(best.p>=60) out.push(`<div class="alert warn">${L.alertRain(s,nf(best.p),hourLabel(best.t))}</div>`);
+    const rs=rainSummary(d);
+    if(rs.type==="next" && rs.w.hrsUntil<=3) out.push(`<div class="alert info">${L.alertSoon(s,winText(rs.w),rs.w.hrsUntil===0?0:nf(rs.w.hrsUntil))}</div>`);
+    if(d.current.wind_gusts_10m>=50) out.push(`<div class="alert warn">${L.alertGust(s,d.current.wind_gusts_10m)}</div>`);
+  });
+  if(!out.length) out.push(`<div class="alert ok">${L.alertOk}</div>`);
+  return out.join("");
+}
+
+function renderChips(){
+  const L=T();
+  document.getElementById("chips").innerHTML =
+    `<button class="chip ${ACTIVE==="all"?"on":""}" data-s="all">${L.all}</button>` +
+    SITES.map((s,i)=>`<button class="chip ${String(ACTIVE)===String(i)?"on":""}" data-s="${i}">${siteName(s)}</button>`).join("");
+}
+function renderSites(){
+  const idx = ACTIVE==="all" ? SITES.map((_,i)=>i) : [Number(ACTIVE)];
+  document.getElementById("sites").innerHTML = idx.map(siteCard).join("");
+}
+function renderAll(){
+  if(!DATA.length) return;
+  document.getElementById("alerts").innerHTML = alertsHtml();
+  document.getElementById("overview").innerHTML = overviewHtml();
+  renderChips(); renderSites();
+}
+
+let lastUpdate = null;
+function renderUpdated(){
+  const el=document.getElementById("updated");
+  if(!lastUpdate){ el.textContent=T().loadingShort; return; }
+  const n=lastUpdate;
+  el.textContent = T().updated + nf(pad(n.getHours()%12||12))+":"+nf(pad(n.getMinutes())) + (n.getHours()>=12?" PM":" AM");
+}
+
+function applyLang(){
+  const L=T();
+  document.documentElement.lang = LANG;
+  document.title = isBn() ? "জুবাইল বৃষ্টির পূর্বাভাস ও আবহাওয়া" : "Jubail Rain Forecast & Weather";
+  document.querySelectorAll("[data-i]").forEach(el=>{ el.textContent = L[el.dataset.i]; });
+  document.getElementById("lang").textContent = L.langBtn;
+  renderUpdated(); renderAll(); tick(true);
+}
+
+async function load(){
+  try{
+    const res = await fetch(buildUrl());
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data = await res.json();
+    DATA = Array.isArray(data) ? data : [data];
+    lastUpdate = new Date();
+    renderUpdated(); renderAll();
+  }catch(e){
+    document.getElementById("sites").innerHTML = `<div class="err">${T().err} (${e.message})</div>`;
+  }
+  left = REFRESH_SEC;
+}
+
+/* ---------- Clock + countdown ---------- */
+let left = REFRESH_SEC;
+function tick(noDec){
+  const L=T(), n=new Date();
+  document.getElementById("clock").textContent = nf(pad(n.getHours()))+":"+nf(pad(n.getMinutes()))+":"+nf(pad(n.getSeconds()));
+  document.getElementById("date").textContent = L.days[n.getDay()]+", "+nf(n.getDate())+" "+L.months[n.getMonth()]+" "+nf(n.getFullYear());
+  if(noDec!==true){ left--; if(left<=0){ load(); return; } }
+  const m=Math.floor(left/60), s=left%60;
+  document.getElementById("countdown").textContent = L.next + nf(pad(m))+":"+nf(pad(s)) + L.minLater;
+  document.getElementById("bar").style.width = (100 - left/REFRESH_SEC*100) + "%";
+}
+setInterval(tick,1000);
+
+/* ---------- Events ---------- */
+document.getElementById("refresh").onclick = load;
+document.getElementById("print").onclick = () => window.print();
+document.getElementById("lang").onclick = () => {
+  LANG = isBn() ? "en" : "bn";
+  try{ localStorage.setItem("lang",LANG); }catch(e){}
+  applyLang();
+};
+document.getElementById("chips").addEventListener("click", e=>{
+  const b=e.target.closest(".chip"); if(!b) return;
+  ACTIVE=b.dataset.s; renderChips(); renderSites();
+});
+document.getElementById("overview").addEventListener("click", e=>{
+  const c=e.target.closest(".ov"); if(!c) return;
+  ACTIVE=c.dataset.go; renderChips(); renderSites();
+  document.getElementById("sites").scrollIntoView({behavior:"smooth"});
+});
+const root=document.documentElement;
+try{ const sv=localStorage.getItem("theme"); if(sv) root.dataset.theme=sv; }catch(e){}
+document.getElementById("theme").onclick = ()=>{
+  const nt = root.dataset.theme==="dark" ? "light" : "dark";
+  root.dataset.theme = nt;
+  try{ localStorage.setItem("theme",nt); }catch(e){}
+};
+
+/* ---------- Rain animation ---------- */
+(function(){
+  const cv=document.getElementById("rain"), cx=cv.getContext("2d");
+  let W,H,drops=[];
+  function size(){ W=cv.width=innerWidth; H=cv.height=innerHeight;
+    drops=Array.from({length:Math.min(140,Math.floor(W/9))},()=>({x:Math.random()*W,y:Math.random()*H,l:8+Math.random()*14,v:4+Math.random()*6})); }
+  size(); addEventListener("resize",size);
+  function frame(){
+    cx.clearRect(0,0,W,H);
+    cx.strokeStyle = root.dataset.theme==="dark" ? "rgba(150,200,255,.5)" : "rgba(20,100,190,.35)";
+    cx.lineWidth=1; cx.beginPath();
+    drops.forEach(d=>{ cx.moveTo(d.x,d.y); cx.lineTo(d.x-2,d.y+d.l); d.y+=d.v; d.x-=.6;
+      if(d.y>H){ d.y=-20; d.x=Math.random()*W+40; } });
+    cx.stroke(); requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+applyLang();
+load();
+</script>
+</body>
+</html>
