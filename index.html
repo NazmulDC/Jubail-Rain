@@ -116,6 +116,7 @@
   .credit{margin:30px 0 14px;border-radius:22px;padding:22px;text-align:center;background:linear-gradient(135deg,rgba(76,195,255,.18),rgba(123,140,255,.2));border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
   .credit .by{color:var(--muted);font-size:.85rem;letter-spacing:.08em}
   .credit .name{font-size:1.6rem;font-weight:700;margin:4px 0;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .credit .name .flag{vertical-align:middle;margin-left:6px;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
   .credit .role{font-weight:600}
   .credit .co{color:var(--muted)}
   footer{text-align:center;padding:0 0 30px}
@@ -166,14 +167,14 @@
   <div class="sec-title"><span data-i="ovTitle"></span> <span class="small" data-i="ovHint"></span></div>
   <div class="overview" id="overview"></div>
 
-  <div class="sec-title" data-i="siteSel"></div>
+  <div class="sec-title" id="siteSelTitle" data-i="siteSel"></div>
   <div class="chips" id="chips"></div>
 
   <div id="sites"><div class="loading" data-i="loading"></div></div>
 
   <div class="credit">
     <div class="by">MADE BY</div>
-    <div class="name">Nazmul Haque</div>
+    <div class="name">Nazmul Haque <svg class="flag" viewBox="0 0 30 18" width="34" height="20" role="img" aria-label="Bangladesh flag"><rect width="30" height="18" rx="2" fill="#006a4e"/><circle cx="13.5" cy="9" r="5.4" fill="#f42a41"/></svg></div>
     <div class="role">Document Controller</div>
     <div class="co">Sinopec Engineering Group</div>
   </div>
@@ -184,9 +185,7 @@
 /* ====== সাইটের তালিকা / Site list — নাম ও কোঅর্ডিনেট এখানে বদলান ======
    lat/lon ঠিক না হলে Google Maps-এ সাইটে রাইট-ক্লিক করে কোঅর্ডিনেট কপি করে বসান। */
 const SITES = [
-  { bn: "জুবাইল শহর",       en: "Jubail City",              lat: 27.0046, lon: 49.6460 },
-  { bn: "জুবাইল শিল্পনগরী", en: "Jubail Industrial City",   lat: 27.0830, lon: 49.5500 },
-  { bn: "রাস আল-খাইর",      en: "Ras Al-Khair",             lat: 27.4797, lon: 49.1944 }
+  { bn: "রিয়াস NGL প্রজেক্ট, জুবাইল", en: "Riyas NGL Project, Jubail", lat: 26.793381, lon: 49.687365 }
 ];
 /* ====== ============================================== ====== */
 
@@ -492,6 +491,9 @@ function alertsHtml(){
 
 function renderChips(){
   const L=T();
+  const multi = SITES.length>1;
+  document.getElementById("siteSelTitle").style.display = multi ? "" : "none";
+  document.getElementById("chips").style.display = multi ? "" : "none";
   document.getElementById("chips").innerHTML =
     `<button class="chip ${ACTIVE==="all"?"on":""}" data-s="all">${L.all}</button>` +
     SITES.map((s,i)=>`<button class="chip ${String(ACTIVE)===String(i)?"on":""}" data-s="${i}">${siteName(s)}</button>`).join("");
